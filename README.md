@@ -1,10 +1,54 @@
 # Todo List App (Node.js, Docker, Prometheus, Grafana, CI/CD)
 
-## 📝 Tổng quan
-Đây là ứng dụng Todo List được xây dựng với Node.js, Express, Sequelize (MySQL), hỗ trợ quản lý công việc, phân loại, ưu tiên, deadline, và có hệ thống đăng nhập/đăng ký người dùng. Ứng dụng tích hợp:
-- **Docker Compose**: Triển khai toàn bộ stack (Node.js, MySQL, Prometheus, Grafana) dễ dàng.
-- **Prometheus & Grafana**: Giám sát, trực quan hóa metrics ứng dụng.
-- **CI/CD với GitHub Actions**: Tự động kiểm tra, build, test, build Docker image khi push code.
+## 📝 Mô tả dự án
+Đây là dự án Todo List App giúp người dùng quản lý công việc cá nhân một cách hiệu quả, trực quan và hiện đại. Ứng dụng được xây dựng với mục tiêu:
+- Đơn giản hóa việc tạo, theo dõi, hoàn thành và xóa các nhiệm vụ hàng ngày.
+- Hỗ trợ đăng ký/đăng nhập, bảo mật tài khoản.
+- Theo dõi tiến độ, deadline, ưu tiên công việc.
+- Dễ dàng mở rộng, tích hợp các công nghệ DevOps, Cloud, Monitoring.
+
+**Tính năng nổi bật:**
+- Quản lý công việc (CRUD Todo, deadline, trạng thái hoàn thành).
+- Đăng ký/đăng nhập, bảo mật tài khoản.
+- Giao diện hiện đại, responsive, UX thân thiện.
+- Tích hợp Prometheus & Grafana để giám sát hiệu năng, sức khỏe hệ thống.
+- CI/CD tự động với GitHub Actions: kiểm tra, test, build Docker image mỗi lần push code.
+- Dễ dàng triển khai trên Docker, Cloud, hoặc server cá nhân.
+
+**Ý nghĩa thực tiễn:**
+- Phù hợp cho cá nhân, nhóm nhỏ, sinh viên học DevOps, Backend, Cloud.
+- Là mẫu dự án hoàn chỉnh để học CI/CD, Docker, Monitoring, Cloud Deploy.
+- Có thể mở rộng thành hệ thống quản lý công việc cho doanh nghiệp nhỏ.
+
+**Hướng phát triển mở rộng:**
+- Thêm tính năng thông báo qua email, push notification.
+- Tích hợp OAuth (Google, Facebook, GitHub login).
+- Đa ngôn ngữ, giao diện dark mode.
+- Triển khai microservices, sử dụng message queue (RabbitMQ, Kafka).
+- Tích hợp các dịch vụ cloud (AWS, GCP, Azure) và auto deploy.
+
+## 🌟 Minh họa giao diện
+
+### Đăng nhập
+![Giao diện đăng nhập](public/images/login.png)
+
+### Đăng ký tài khoản
+![Giao diện đăng ký](public/images/register.png)
+
+### Thêm công việc mới
+![Form thêm task](public/images/add_task.png)
+
+### Thông báo thêm task thành công
+![Thông báo task mới](public/images/notification.png)
+
+### Task đã trễ hạn
+![Task trễ hạn](public/images/overdue.png)
+
+### Task còn thời gian hoàn thành
+![Task còn thời gian](public/images/countdown.png)
+
+### Task đã hoàn thành
+![Task đã hoàn thành](public/images/completed.png)
 
 ## 🚀 Hướng dẫn cài đặt & chạy
 
