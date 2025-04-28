@@ -10,7 +10,7 @@
 
 ### 1. Clone dự án
 ```bash
-git clone https://github.com/<your-username>/<repo-name>.git
+[git clone https://github.com/<your-username>/<repo-name>.git](https://github.com/NguyenAnhDucDev/to_do_list_nodejs)
 cd to_do_list
 ```
 
