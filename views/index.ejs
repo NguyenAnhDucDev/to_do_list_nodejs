@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/flatpickr.min.css">
+    <style>
+        body {
+            background: #f7f7f7;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .container {
+            max-width: 500px;
+            margin: 32px auto;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px 32px 16px 32px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            margin-bottom: 24px;
+        }
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .btn-danger {
+            background: #ff4d4f;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 18px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-danger:hover {
+            background: #d9363e;
+        }
+        .todo-form {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            padding: 24px 24px 16px 24px;
+            margin-bottom: 28px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            font-weight: 500;
+            margin-bottom: 6px;
+            display: block;
+        }
+        input[type="text"], input[type="date"], select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #d9d9d9;
+            font-size: 1rem;
+            margin-top: 2px;
+        }
+        .btn.btn-primary {
+            width: 100%;
+            background: #1890ff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        .btn.btn-primary:hover {
+            background: #1765ad;
+        }
+        .todo-list {
+            margin-bottom: 32px;
+        }
+        .todo-item {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            padding: 18px 20px 14px 20px;
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+        .todo-item.completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+        .todo-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .todo-meta {
+            font-size: 0.98rem;
+            color: #888;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0;
+        }
+        .todo-meta > div {
+            flex: 1 1 0;
+            text-align: center;
+            min-width: 0;
+            white-space: nowrap;
+        }
+        .todo-meta i {
+            margin-right: 4px;
+        }
+        .todo-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .btn-action {
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 6px 10px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        .btn-action.complete {
+            color: #fff;
+            background: #52c41a;
+        }
+        .btn-action.complete:hover {
+            background: #389e0d;
+        }
+        .btn-action.delete {
+            color: #fff;
+            background: #ff4d4f;
+        }
+        .btn-action.delete:hover {
+            background: #d9363e;
+        }
+        .highlight-new {
+            animation: highlight-fade 2s;
+            background: #e0ffe0 !important;
+        }
+        @keyframes highlight-fade {
+            0% { background: #e0ffe0; }
+            100% { background: #fff; }
+        }
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+        }
+        .toast {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 14px 22px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #333;
+            border-left: 5px solid #1890ff;
+            min-width: 220px;
+        }
+        .toast-success { border-left-color: #52c41a; }
+        .toast-info { border-left-color: #1890ff; }
+        .toast-error { border-left-color: #ff4d4f; }
+        @media (max-width: 600px) {
+            .container { max-width: 98vw; padding: 0 2vw; }
+            header { flex-direction: column; gap: 10px; padding: 18px 10px 10px 10px; }
+            .todo-form { padding: 12px 6px 8px 6px; }
+            .todo-item { padding: 14px 8px 10px 8px; font-size: 0.98rem; }
+            .todo-title { font-size: 1.05rem; }
+            .todo-meta { font-size: 0.92rem; flex-direction: column; gap: 2px; }
+            .todo-meta { flex-direction: column !important; }
+            .todo-meta > div { text-align: left; padding: 2px 0; }
+            .btn-action { font-size: 1.1rem; padding: 8px 12px; }
+            .btn.btn-primary { font-size: 1rem; padding: 10px 0; }
+            .form-group label { font-size: 0.98rem; }
+            .user-info { flex-direction: column; gap: 4px; }
+        }
+        @media (max-width: 400px) {
+            .container { padding: 0 1vw; }
+            .todo-title { font-size: 0.98rem; }
+            .btn-action { font-size: 1rem; padding: 8px 8px; }
+        }
+        .countdown {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 1.08em;
+            color: #1890ff;
+            font-weight: 600;
+            text-align: left;
+            word-break: keep-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Todo List</h1>
+            <div class="user-info">
+                <span>Welcome, <%= username %></span>
+                <a href="/logout" class="btn btn-danger">Logout</a>
+            </div>
+        </header>
+
+        <div class="todo-form">
+            <form id="todoForm">
+                <div class="form-group">
+                    <label for="task">Nội dung công việc</label>
+                    <input type="text" id="task" name="task" placeholder="Nhập nội dung công việc" required>
+                </div>
+                <div class="form-group">
+                    <label for="category">Loại công việc</label>
+                    <select id="category" name="category" required>
+                        <option value="">Chọn loại công việc</option>
+                        <option value="work">Công việc</option>
+                        <option value="personal">Cá nhân</option>
+                        <option value="shopping">Mua sắm</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="priority">Ưu tiên</label>
+                    <select id="priority" name="priority">
+                        <option value="medium">Trung bình</option>
+                        <option value="low">Thấp</option>
+                        <option value="high">Cao</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="due_date">Hạn hoàn thành</label>
+                    <input type="text" id="due_date" name="due_date" required placeholder="dd-mm-yyyy HH:MM:SS">
+                </div>
+                <button type="submit" class="btn btn-primary">Thêm Task</button>
+            </form>
+        </div>
+
+        <div class="todo-list" id="todoList">
+            <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 10px;">Tasks cần hoàn thiện</h2>
+            <!-- Tasks chưa hoàn thành sẽ được render ở đây -->
+        </div>
+        <div class="todo-list" id="completedTodoList">
+            <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 10px;">Tasks đã hoàn thành</h2>
+            <!-- Tasks đã hoàn thành sẽ được render ở đây -->
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/flatpickr.min.js"></script>
+    <script>
+        const socket = io();
+        const todoForm = document.getElementById('todoForm');
+        const todoList = document.getElementById('todoList');
+
+        // Load todos on page load
+        socket.emit('getTodos');
+
+        // Handle form submission
+        todoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(todoForm);
+            let dueDate = formData.get('due_date');
+            // Chuyển dd-mm-yyyy HH:MM:SS sang yyyy-mm-dd HH:MM:SS để lưu
+            const dateTimeRegex = /^(\d{2})-(\d{2})-(\d{4}) (\d{2}):(\d{2}):(\d{2})$/;
+            const match = dueDate.match(dateTimeRegex);
+            if (!dueDate || !match) {
+                showToast('Vui lòng nhập ngày theo định dạng dd-mm-yyyy HH:MM:SS!', 'error');
+                return;
+            }
+            const [_, day, month, year, hour, min, sec] = match;
+            dueDate = `${year}-${month}-${day} ${hour}:${min}:${sec}`;
+            const todo = {
+                task: formData.get('task'),
+                category: formData.get('category'),
+                priority: formData.get('priority'),
+                due_date: dueDate
+            };
+            socket.emit('createTodo', todo);
+            todoForm.reset();
+        });
+
+        // Socket event handlers
+        socket.on('todos', (todos) => {
+            // Sắp xếp theo ưu tiên và ngày hạn
+            const priorityOrder = { high: 1, medium: 2, low: 3 };
+            todos.sort((a, b) => {
+                if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                    return priorityOrder[a.priority] - priorityOrder[b.priority];
+                }
+                // So sánh ngày hạn (ngày gần nhất lên trước)
+                if (a.due_date && b.due_date) {
+                    return new Date(a.due_date) - new Date(b.due_date);
+                }
+                return 0;
+            });
+            // Tách 2 danh sách
+            const incomplete = todos.filter(t => !t.completed);
+            const completed = todos.filter(t => t.completed);
+            todoList.innerHTML = '<h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 10px;">Tasks cần hoàn thiện</h2>';
+            if (incomplete.length === 0) {
+                todoList.innerHTML += '<div style="color: #888; text-align: center; margin-top: 10px;"><i class="fas fa-smile-beam" style="font-size: 1.5rem;"></i><br>Không có task nào!</div>';
+            } else {
+                incomplete.forEach(todo => {
+                    const todoElement = createTodoElement(todo);
+                    todoList.appendChild(todoElement);
+                });
+            }
+            // Render danh sách đã hoàn thành
+            const completedList = document.getElementById('completedTodoList');
+            completedList.innerHTML = '<h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 10px;">Tasks đã hoàn thành</h2>';
+            if (completed.length > 0) {
+                completed.forEach(todo => {
+                    const todoElement = createTodoElement(todo);
+                    completedList.appendChild(todoElement);
+                });
+            }
+        });
+
+        socket.on('todoCreated', (todo) => {
+            if (document.querySelector(`[data-id="${todo.id}"]`)) return;
+            const todoElement = createTodoElement(todo);
+            todoElement.classList.add('highlight-new');
+            if (!todo.completed) {
+                todoList.insertBefore(todoElement, todoList.children[1] || null);
+            } else {
+                const completedList = document.getElementById('completedTodoList');
+                completedList.insertBefore(todoElement, completedList.children[1] || null);
+            }
+            showToast('Có task mới được thêm!', 'info');
+            setTimeout(() => {
+                todoElement.classList.remove('highlight-new');
+            }, 2000);
+        });
+
+        socket.on('todoUpdated', (todo) => {
+            const todoElement = document.querySelector(`[data-id="${todo.id}"]`);
+            if (todoElement) {
+                const newTodoElement = createTodoElement(todo);
+                // Xác định chuyển task sang danh sách nào
+                if (todo.completed) {
+                    // Nếu đã hoàn thành, chuyển sang completedTodoList
+                    const completedList = document.getElementById('completedTodoList');
+                    todoElement.remove();
+                    completedList.insertBefore(newTodoElement, completedList.children[1] || null);
+                } else {
+                    // Nếu chưa hoàn thành, chuyển sang todoList
+                    todoElement.remove();
+                    todoList.insertBefore(newTodoElement, todoList.children[1] || null);
+                }
+                showToast('Cập nhật task thành công!', 'success');
+            }
+        });
+
+        socket.on('todoDeleted', (todoId) => {
+            const todoElement = document.querySelector(`[data-id="${todoId}"]`);
+            if (todoElement) {
+                todoElement.remove();
+                showToast('Xóa task thành công!', 'success');
+            }
+        });
+
+        function formatDateDDMMYYYY(dateString) {
+            if (!dateString) return '';
+            const [year, month, day] = dateString.split('-');
+            return `${day}-${month}-${year}`;
+        }
+
+        function formatDateDDMMYYYY_HHmmss(dateString) {
+            if (!dateString) return '';
+            // dateString: yyyy-mm-dd HH:MM:SS
+            const [datePart, timePart] = dateString.split(' ');
+            const [year, month, day] = datePart.split('-');
+            return `${day}-${month}-${year} ${timePart || ''}`;
+        }
+
+        function createTodoElement(todo) {
+            const div = document.createElement('div');
+            div.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+            div.setAttribute('data-id', todo.id);
+
+            // Countdown trên đầu task
+            let countdownHtml = '';
+            if (todo.due_date && !todo.completed) {
+                countdownHtml = `<div class='countdown' data-duedate='${todo.due_date}'></div>`;
+            }
+            if (countdownHtml) {
+                div.innerHTML += countdownHtml;
+            }
+
+            const title = document.createElement('h3');
+            title.className = 'todo-title';
+            title.textContent = todo.task;
+
+            const meta = document.createElement('div');
+            meta.className = 'todo-meta';
+            // Kiểm tra nếu quá hạn thì hiển thị ngày màu đỏ
+            let dueDateHtml = '';
+            if (todo.due_date) {
+                const today = new Date();
+                const due = new Date(todo.due_date.replace(' ', 'T'));
+                if (due < today) {
+                    dueDateHtml = `<i class="fas fa-calendar-alt"></i>Hạn: <span style='color: #ff4d4f; font-weight:600'>${formatDateDDMMYYYY_HHmmss(todo.due_date)}</span>`;
+                } else {
+                    dueDateHtml = `<i class="fas fa-calendar-alt"></i>Hạn: ${formatDateDDMMYYYY_HHmmss(todo.due_date)}`;
+                }
+            }
+            meta.innerHTML = `
+                <div><i class="fas fa-tag"></i>Loại: ${todo.category}</div>
+                <div><i class="fas fa-bolt"></i>Ưu tiên: ${todo.priority}</div>
+                <div>${dueDateHtml}</div>
+            `;
+
+            const actions = document.createElement('div');
+            actions.className = 'todo-actions';
+
+            const completeBtn = document.createElement('button');
+            completeBtn.className = 'btn-action complete';
+            completeBtn.innerHTML = '<i class="fas fa-check"></i>';
+            completeBtn.title = todo.completed ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu hoàn thành';
+            completeBtn.onclick = () => {
+                // Nếu chưa hoàn thành, khi hoàn thành sẽ hiện toast chúc mừng
+                if (!todo.completed) {
+                    const now = new Date();
+                    const due = new Date(todo.due_date.replace(' ', 'T'));
+                    let diff = due - now;
+                    let isEarly = diff > 0;
+                    diff = Math.abs(diff);
+                    // Tính số năm, tháng, ngày, giờ, phút, giây
+                    let seconds = Math.floor(diff / 1000);
+                    let years = Math.floor(seconds / (365*24*3600));
+                    seconds -= years * 365*24*3600;
+                    let months = Math.floor(seconds / (30*24*3600));
+                    seconds -= months * 30*24*3600;
+                    let days = Math.floor(seconds / (24*3600));
+                    seconds -= days * 24*3600;
+                    let hours = Math.floor(seconds / 3600);
+                    seconds -= hours * 3600;
+                    let minutes = Math.floor(seconds / 60);
+                    seconds = seconds % 60;
+                    let arr = [];
+                    if (years) arr.push(years + ' năm');
+                    if (months) arr.push(months + ' tháng');
+                    if (days) arr.push(days + ' ngày');
+                    if (hours) arr.push(hours + ' giờ');
+                    if (minutes) arr.push(minutes + ' phút');
+                    if (seconds) arr.push(seconds + ' giây');
+                    let timeStr = arr.join(' ');
+                    if (isEarly) {
+                        showToast('🎉 Chúc mừng bạn đã hoàn thành nhiệm vụ trước hạn ' + timeStr + '!', 'success');
+                    } else {
+                        showToast('⚠️ Bạn đã hoàn thành nhiệm vụ nhưng bị trễ hạn ' + timeStr + '! Hãy cố gắng lần sau nhé!', 'error');
+                    }
+                }
+                socket.emit('updateTodo', { id: todo.id, completed: !todo.completed });
+            };
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-action delete';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.title = 'Xóa task';
+            deleteBtn.onclick = () => {
+                if (confirm('Bạn chắc chắn muốn xóa task này?')) {
+                    socket.emit('deleteTodo', todo.id);
+                }
+            };
+
+            actions.appendChild(completeBtn);
+            actions.appendChild(deleteBtn);
+
+            div.appendChild(title);
+            div.appendChild(meta);
+            div.appendChild(actions);
+
+            return div;
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        flatpickr("#due_date", {
+            enableTime: true,
+            enableSeconds: true,
+            time_24hr: true,
+            dateFormat: "d-m-Y H:i:S",
+            allowInput: true,
+            altInput: false,
+            onValueUpdate: function(selectedDates, dateStr, instance) {
+                // Nếu người dùng nhập 8 số liền nhau, tự động format
+                if (/^\d{8}$/.test(dateStr)) {
+                    const d = dateStr.substring(0,2);
+                    const m = dateStr.substring(2,4);
+                    const y = dateStr.substring(4,8);
+                    instance.setDate(`${d}-${m}-${y}`, true, "d-m-Y");
+                }
+            }
+        });
+
+        // Tự động format khi nhập 8 số liền nhau vào input
+        document.getElementById('due_date').addEventListener('input', function(e) {
+            const val = e.target.value;
+            if (/^\d{8}$/.test(val)) {
+                const d = val.substring(0,2);
+                const m = val.substring(2,4);
+                const y = val.substring(4,8);
+                const formatted = `${d}-${m}-${y}`;
+                e.target.value = formatted;
+                // Cập nhật lại cho flatpickr
+                if (e.target._flatpickr) {
+                    e.target._flatpickr.setDate(formatted, true, "d-m-Y");
+                }
+            }
+        });
+
+        // Countdown cho các task chưa hoàn thành
+        function updateCountdowns() {
+            const countdownEls = document.querySelectorAll('.countdown');
+            countdownEls.forEach(el => {
+                const dueDateStr = el.getAttribute('data-duedate');
+                if (!dueDateStr) return;
+                const due = new Date(dueDateStr.replace(' ', 'T'));
+                const now = new Date();
+                let diff = Math.floor((due - now) / 1000);
+                if (diff <= 0) {
+                    el.textContent = 'Đã trễ hạn!';
+                    el.style.color = '#ff4d4f';
+                } else {
+                    let days = Math.floor(diff / (24*3600));
+                    let hours = Math.floor((diff % (24*3600)) / 3600);
+                    let minutes = Math.floor((diff % 3600) / 60);
+                    let seconds = diff % 60;
+                    let text = 'Còn lại: ';
+                    if (days > 0) text += `${days} ngày `;
+                    if (days > 0 || hours > 0) text += `${hours} giờ `;
+                    if (days > 0 || hours > 0 || minutes > 0) text += `${minutes} phút `;
+                    text += `${seconds} giây`;
+                    el.textContent = text.trim();
+                    el.style.color = '#1890ff';
+                }
+            });
+        }
+        setInterval(updateCountdowns, 1000);
+        document.addEventListener('DOMContentLoaded', updateCountdowns);
+    </script>
+</body>
+</html> 
