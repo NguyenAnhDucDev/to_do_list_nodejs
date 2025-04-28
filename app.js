@@ -15,10 +15,44 @@ const http = require('http');
 const io = require('socket.io');
 const winston = require('winston');
 const prometheusMiddleware = require('express-prometheus-middleware');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const Redis = require('redis');
+const RedisStore = require('connect-redis').default;
+const { Kafka } = require('kafkajs');
+const multer = require('multer');
 
 const app = express();
 const server = http.createServer(app);
 const ioServer = io(server);
+
+// Khởi tạo Redis client
+const redisClient = Redis.createClient({
+    url: process.env.REDIS_URL || 'redis://redis:6379'
+});
+redisClient.connect().catch(console.error);
+
+// Kafka setup
+const kafka = new Kafka({
+    clientId: 'todo-app',
+    brokers: ['kafka:9092']
+});
+const producer = kafka.producer();
+const consumer = kafka.consumer({ groupId: 'todo-group' });
+
+async function startKafka() {
+    await producer.connect();
+    await consumer.connect();
+    await consumer.subscribe({ topic: 'todo-events', fromBeginning: true });
+    consumer.run({
+        eachMessage: async ({ topic, partition, message }) => {
+            console.log(`Kafka message received: ${message.value.toString()}`);
+        }
+    });
+}
+startKafka().catch(console.error);
 
 // Security middleware
 app.use(helmet());
@@ -58,7 +92,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
+// Sử dụng Redis cho session
 const sessionMiddleware = session({
+    store: new RedisStore({ client: redisClient }),
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
@@ -142,8 +178,21 @@ app.get('/logout', (req, res) => {
     res.redirect('/login');
 });
 
-// Todo routes
-app.get('/', requireAuth, async (req, res) => {
+// Middleware cache todo list
+async function cacheTodos(req, res, next) {
+    const userId = req.session.userId;
+    if (!userId) return next();
+    const cacheKey = `todos:${userId}`;
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+        return res.render('index', { todos: JSON.parse(cached), username: req.session.username, filters: {} });
+    }
+    res.locals.cacheKey = cacheKey;
+    next();
+}
+
+// Routes
+app.get('/', requireAuth, cacheTodos, async (req, res) => {
     const filters = {
         category: req.query.category,
         completed: req.query.completed === 'true' ? true : 
@@ -178,7 +227,10 @@ app.get('/', requireAuth, async (req, res) => {
                 ['createdAt', 'DESC']
             ]
         });
-
+        // Lưu vào cache Redis
+        if (res.locals.cacheKey) {
+            await redisClient.setEx(res.locals.cacheKey, 60, JSON.stringify(todos)); // cache 60s
+        }
         res.render('index', { 
             todos,
             username: req.session.username,
@@ -190,16 +242,23 @@ app.get('/', requireAuth, async (req, res) => {
     }
 });
 
-app.post('/todos', requireAuth, async (req, res) => {
+app.post('/todos', requireAuth, clearTodosCache, async (req, res) => {
     const { task, category, priority, due_date } = req.body;
     if (task && task.trim() !== '' && category && due_date) {
         try {
-            await Todo.create({
+            const todo = await Todo.create({
                 task: task.trim(),
                 category,
                 priority,
                 due_date,
                 userId: req.session.userId
+            });
+            // Gửi message Kafka
+            await producer.send({
+                topic: 'todo-events',
+                messages: [
+                    { value: JSON.stringify({ event: 'todo_created', todo }) }
+                ]
             });
         } catch (err) {
             console.error('Error adding todo:', err);
@@ -208,7 +267,7 @@ app.post('/todos', requireAuth, async (req, res) => {
     res.redirect('/');
 });
 
-app.post('/todos/:id/edit', requireAuth, async (req, res) => {
+app.post('/todos/:id/edit', requireAuth, clearTodosCache, async (req, res) => {
     const { task, category, due_date, priority } = req.body;
     const id = req.params.id;
     try {
@@ -226,7 +285,7 @@ app.post('/todos/:id/edit', requireAuth, async (req, res) => {
     res.redirect('/');
 });
 
-app.post('/todos/:id/toggle', requireAuth, async (req, res) => {
+app.post('/todos/:id/toggle', requireAuth, clearTodosCache, async (req, res) => {
     const id = req.params.id;
     try {
         const todo = await Todo.findOne({ where: { id, userId: req.session.userId } });
@@ -239,7 +298,7 @@ app.post('/todos/:id/toggle', requireAuth, async (req, res) => {
     res.redirect('/');
 });
 
-app.post('/todos/:id/delete', requireAuth, async (req, res) => {
+app.post('/todos/:id/delete', requireAuth, clearTodosCache, async (req, res) => {
     const id = req.params.id;
     try {
         await Todo.destroy({
@@ -346,6 +405,36 @@ ioServer.on('connection', (socket) => {
     });
 });
 
+// Swagger setup
+const swaggerOptions = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Todo List API',
+            version: '1.0.0',
+            description: 'API documentation for Todo List App',
+        },
+        servers: [
+            { url: 'http://localhost:3001' }
+        ],
+    },
+    apis: ['./app.js', './routes/*.js', './models/*.js'],
+};
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// JWT middleware mẫu
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'No token provided' });
+    jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret', (err, user) => {
+        if (err) return res.status(403).json({ message: 'Invalid token' });
+        req.user = user;
+        next();
+    });
+}
+
 // Winston logger setup
 const logger = winston.createLogger({
     level: 'info',
@@ -366,6 +455,123 @@ app.use(prometheusMiddleware({
     collectDefaultMetrics: true,
     requestDurationBuckets: [0.1, 0.5, 1, 1.5],
 }));
+
+// Route upload file
+/**
+ * @swagger
+ * /upload:
+ *   post:
+ *     summary: Upload file
+ *     tags: [File]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Upload thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 filename:
+ *                   type: string
+ */
+const upload = multer({ dest: path.join(__dirname, 'public/uploads') });
+app.post('/upload', upload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    res.json({ filename: req.file.filename });
+});
+
+/**
+ * @swagger
+ * /api/register:
+ *   post:
+ *     summary: Đăng ký tài khoản mới
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Đăng ký thành công
+ *       400:
+ *         description: Lỗi đăng ký
+ */
+app.post('/api/register', async (req, res) => {
+    const { username, password, email } = req.body;
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await User.create({ username, password: hashedPassword, email });
+        res.status(201).json({ message: 'Đăng ký thành công', user: { id: user.id, username: user.username, email: user.email } });
+    } catch (err) {
+        res.status(400).json({ message: 'Username or email already exists' });
+    }
+});
+
+/**
+ * @swagger
+ * /api/login:
+ *   post:
+ *     summary: Đăng nhập và nhận JWT
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Đăng nhập thành công, trả về JWT
+ *       401:
+ *         description: Sai thông tin đăng nhập
+ */
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const user = await User.findOne({ where: { username } });
+        if (!user) return res.status(401).json({ message: 'Invalid username or password' });
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) return res.status(401).json({ message: 'Invalid username or password' });
+        // Sinh JWT
+        const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '1d' });
+        res.json({ message: 'Đăng nhập thành công', token });
+    } catch (err) {
+        res.status(500).json({ message: 'Đăng nhập thất bại' });
+    }
+});
+
+// Xóa cache khi thêm/sửa/xóa todo
+async function clearTodosCache(req, res, next) {
+    const userId = req.session.userId;
+    if (userId) {
+        await redisClient.del(`todos:${userId}`);
+    }
+    next();
+}
 
 // Sync database and start server
 const PORT = process.env.PORT || 3001;

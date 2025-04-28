@@ -1,4 +1,20 @@
-# Todo List App (Node.js, Docker, Prometheus, Grafana, CI/CD)
+# Todo List App - Fullstack DevOps Demo
+
+## 🚀 Tổng quan công nghệ
+Dự án Todo List này tích hợp hàng loạt công nghệ hiện đại, phù hợp cho học tập, demo DevOps, Cloud Native, Microservices:
+
+- **Node.js & Express**: Backend API, server-side rendering.
+- **MySQL & Sequelize**: Lưu trữ dữ liệu, ORM.
+- **Docker & Docker Compose**: Đóng gói, triển khai đa dịch vụ.
+- **Prometheus & Grafana**: Monitoring, metrics, dashboard.
+- **Redis**: Caching, session store, rate limiting.
+- **Kafka (Kafkajs)**: Message queue, event-driven, microservices.
+- **Socket.io**: Realtime notification, live update.
+- **Multer**: Upload file, lưu trữ file server.
+- **Winston & Morgan**: Logging nâng cao.
+- **Swagger (swagger-ui-express)**: Tài liệu hóa API, test API trực tiếp.
+- **GitHub Actions**: CI/CD tự động build, test, build Docker image.
+- **Render.com**: Cloud deploy, auto build & deploy khi push code.
 
 ## 📝 Mô tả dự án
 Đây là dự án Todo List App giúp người dùng quản lý công việc cá nhân một cách hiệu quả, trực quan và hiện đại. Ứng dụng được xây dựng với mục tiêu:
@@ -87,7 +103,7 @@ to_do_list/
 ├── package.json          # Node.js dependencies
 ├── prometheus.yml        # Prometheus config
 ├── init-db.js            # Script khởi tạo DB và user mẫu
-├── public/               # Static files (CSS, JS, images)
+├── public/               # Static files (CSS, JS, images, uploads)
 ├── models/               # Sequelize models (User, Todo)
 ├── views/                # EJS templates (login, register, index)
 ├── config/               # Cấu hình DB
@@ -113,6 +129,30 @@ to_do_list/
 ## 🧑‍💻 Đóng góp & mở rộng
 - Fork, tạo branch, pull request như các dự án open source khác.
 - Có thể mở rộng thêm: email notification, cloud deploy, OAuth, v.v.
+
+## 📤 File upload & storage
+- API upload file: `POST /upload` (multipart/form-data, field: file)
+- File sẽ được lưu vào thư mục `public/uploads/` trên server.
+- Có thể mở rộng lưu trữ lên cloud (S3, GCS, Azure Blob) nếu cần.
+
+## 🚀 CI/CD nâng cao & Cloud Deploy với Render.com
+### 1. Đăng ký tài khoản tại [https://render.com/](https://render.com/)
+### 2. Kết nối GitHub repo của bạn
+- Chọn **New Web Service** → **Connect your GitHub** → Chọn repo `to_do_list_nodejs`.
+- Chọn **Docker** (vì bạn đã có Dockerfile).
+- Thiết lập port (3001), biến môi trường (DB, REDIS, ...).
+- Nhấn **Create Web Service** và chờ build/deploy tự động.
+
+### 3. Database & Redis
+- Render hỗ trợ tạo dịch vụ PostgreSQL/MySQL/Redis riêng, hoặc bạn có thể dùng dịch vụ cloud DB khác.
+- Cập nhật biến môi trường kết nối DB/Redis trong Render.
+
+### 4. CI/CD tự động
+- Mỗi lần push code lên GitHub, Render sẽ tự động build & deploy lại app.
+
+### 5. Tham khảo:
+- [Render Node.js Docker Deploy](https://render.com/docs/deploy-node-docker)
+- [Render Environment Variables](https://render.com/docs/environment-variables)
 
 ---
 **Chúc bạn code vui vẻ và quản lý công việc hiệu quả!** 
